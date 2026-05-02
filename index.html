@@ -1,1 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EasyGo | Real Ride Hailing with Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', sans-serif; background: #0f2027; min-height: 100vh; }
+        .app-container { max-width: 500px; margin: 0 auto; background: #f4f7fc; min-height: 100vh; box-shadow: 0 0 40px rgba(0,0,0,0.2); }
+        
+        .mode-switcher { display: flex; background: white; padding: 8px; border-radius: 60px; margin: 12px; gap: 8px; }
+        .mode-btn { flex: 1; text-align: center; padding: 12px; border-radius: 50px; font-weight: 700; cursor: pointer; border: none; background: #f1f3f5; }
+        .mode-btn.active { background: #00b67a; color: white; }
+        
+        .auth-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+        .auth-card { background: white; border-radius: 40px; padding: 40px 28px; width: 100%; max-width: 400px; }
+        .auth-logo { text-align: center; margin-bottom: 32px; }
+        .auth-logo i { font-size: 3rem; color: #00b67a; background: #e6f7ef; padding: 16px; border-radius: 60px; }
+        .input-group { margin-bottom: 20px; }
+        .input-group label { display: block; margin-bottom: 8px; font-weight: 600; }
+        .input-group input, .input-group select { width: 100%; padding: 14px 16px; border: 2px solid #e2e8f0; border-radius: 20px; font-size: 1rem; }
+        .btn-primary { background: #00b67a; color: white; width: 100%; padding: 14px; border: none; border-radius: 40px; font-weight: 700; cursor: pointer; }
+        .btn-danger { background: #ef4444; }
+        .auth-switch { text-align: center; margin-top: 24px; color: #718096; }
+        .auth-switch a { color: #00b67a; font-weight: 600; cursor: pointer; }
+        
+        .main-app { display: none; }
+        .app-header { background: white; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; }
+        .logo-area { display: flex; align-items: center; gap: 8px; font-size: 1.3rem; font-weight: 800; }
+        .logo-area i { color: #00b67a; }
+        
+        #map { height: 300px; width: 100%; z-index: 1; }
+        .map-container { position: relative; }
+        .map-buttons { position: absolute; bottom: 10px; right: 10px; display: flex; gap: 8px; z-index: 2; }
+        .map-btn { background: white; border: none; padding: 8px 14px; border-radius: 50px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); cursor: pointer; font-weight: 600; font-size: 0.8rem; }
+        
+        .location-panel { background: white; padding: 12px 16px; border-bottom: 1px solid #e2e8f0; }
+        .location-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; }
+        .location-dot { width: 10px; height: 10px; border-radius: 10px; background: #00b67a; }
+        .location-dot.red { background: #ef4444; }
+        .search-wrapper { flex: 1; position: relative; }
+        .location-input { width: 100%; border: 1px solid #e2e8f0; border-radius: 30px; padding: 12px 16px; font-size: 0.9rem; outline: none; background: #f8fafc; }
+        .location-input:focus { border-color: #00b67a; background: white; }
+        
+        .search-suggestions { position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 100; max-height: 200px; overflow-y: auto; display: none; }
+        .suggestion-item { padding: 10px 16px; cursor: pointer; border-bottom: 1px solid #e2e8f0; font-size: 0.85rem; }
+        .suggestion-item:hover { background: #e6f7ef; }
+        
+        .ride-types { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 12px; background: white; }
+        .ride-card { text-align: center; padding: 10px 6px; border-radius: 16px; cursor: pointer; border: 2px solid transparent; }
+        .ride-card.active { background: #e6f7ef; border-color: #00b67a; }
+        .ride-card i { font-size: 1.2rem; color: #00b67a; }
+        
+        .action-panel { background: white; margin: 12px; border-radius: 24px; padding: 16px; }
+        .price-box { background: #f7f9fc; padding: 12px; border-radius: 16px; display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 12px; }
+        
+        .ride-status-card { background: #fff7ed; border-radius: 20px; padding: 16px; margin-top: 12px; display: none; }
+        .driver-info { display: flex; align-items: center; gap: 12px; margin-top: 12px; padding: 12px; background: white; border-radius: 20px; }
+        
+        .driver-panel { display: none; }
+        .online-toggle { background: white; margin: 12px; padding: 16px; border-radius: 24px; text-align: center; }
+        .toggle-switch { width: 70px; height: 36px; background: #e2e8f0; border-radius: 36px; margin: 12px auto; cursor: pointer; position: relative; transition: 0.2s; }
+        .toggle-switch.on { background: #00b67a; }
+        .toggle-switch::after { content: ""; width: 30px; height: 30px; background: white; border-radius: 30px; position: absolute; top: 3px; left: 3px; transition: 0.2s; }
+        .toggle-switch.on::after { left: 37px; }
+        
+        .ride-request-card { background: white; margin: 12px; padding: 16px; border-radius: 24px; border-left: 5px solid #00b67a; cursor: pointer; }
+        .accept-btn { background: #00b67a; color: white; border: none; padding: 10px; border-radius: 40px; width: 100%; margin-top: 10px; font-weight: 700; cursor: pointer; }
+        
+        .earnings-card { background: white; margin: 12px; padding: 16px; border-radius: 24px; text-align: center; }
+        .history-section { margin: 12px; background: white; border-radius: 24px; padding: 16px; }
+        .history-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #e2e8f0; }
+        .toast { position: fixed; bottom: 20px; left: 20px; right: 20px; background: #1e2a3a; color: white; padding: 12px; border-radius: 60px; text-align: center; z-index: 1000; display: none; font-size: 0.9rem; }
+        .flex-btns { display: flex; gap: 8px; margin-top: 10px; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- Auth Screen -->
+    <div id="authScreen" class="auth-screen">
+        <div class="auth-card">
+            <div class="auth-logo"><i class="fas fa-bolt"></i><h2>EasyGo</h2><p style="color:#718096;">Type address or drag map</p></div>
+            <div id="loginPanel">
+                <div class="input-group"><label>Email</label><input type="email" id="loginEmail" placeholder="Email"></div>
+                <div class="input-group"><label>Password</label><input type="password" id="loginPassword" placeholder="Password"></div>
+                <div class="input-group"><label>I am a</label><select id="loginRole"><option value="rider">Rider (Book rides)</option><option value="driver">Driver (Earn money)</option></select></div>
+                <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+                <div class="auth-switch">New user? <a onclick="showRegister()">Create account</a></div>
+            </div>
+            <div id="registerPanel" style="display:none;">
+                <div class="input-group"><label>Full Name</label><input type="text" id="regName" placeholder="Your name"></div>
+                <div class="input-group"><label>Email</label><input type="email" id="regEmail" placeholder="Email"></div>
+                <div class="input-group"><label>Password</label><input type="password" id="regPassword" placeholder="Password"></div>
+                <div class="input-group"><label>I want to</label><select id="regRole"><option value="rider">Book rides (Rider)</option><option value="driver">Drive & earn (Driver)</option></select></div>
+                <button class="btn-primary" onclick="handleRegister()">Create Account</button>
+                <div class="auth-switch">Have account? <a onclick="showLogin()">Sign In</a></div>
+            </div>
+        </div>
+    </div>
 
+    <!-- Main App -->
+    <div id="mainApp" class="main-app">
+        <div class="app-header">
+            <div class="logo-area"><i class="fas fa-bolt"></i><span>EasyGo</span></div>
+            <div><span id="roleBadge" style="background:#00b67a; padding:4px 12px; border-radius:40px; font-size:0.7rem;"></span>
+            <button onclick="handleLogout()" style="margin-left:8px; background:#fee2e2; border:none; padding:6px 12px; border-radius:40px;">Exit</button></div>
+        </div>
+
+        <div id="modeSwitcher" class="mode-switcher" style="display:none;">
+            <button class="mode-btn" onclick="switchMode('rider')">🚗 Ride</button>
+            <button class="mode-btn" onclick="switchMode('driver')">🚘 Drive</button>
+        </div>
+
+        <!-- RIDER VIEW -->
+        <div id="riderView">
+            <div class="map-container">
+                <div id="riderMap" style="height: 280px; width: 100%;"></div>
+                <div class="map-buttons">
+                    <button class="map-btn" onclick="centerRiderMap()"><i class="fas fa-location-dot"></i> My Location</button>
+                </div>
+            </div>
+            <div class="location-panel">
+                <div class="location-row">
+                    <div class="location-dot"></div>
+                    <div class="search-wrapper">
+                        <input type="text" id="pickupInput" class="location-input" placeholder="Pickup location (type address or drag map)" autocomplete="off">
+                        <div id="pickupSuggestions" class="search-suggestions"></div>
+                    </div>
+                </div>
+                <div class="location-row">
+                    <div class="location-dot red"></div>
+                    <div class="search-wrapper">
+                        <input type="text" id="dropoffInput" class="location-input" placeholder="Destination (type address)" autocomplete="off">
+                        <div id="dropoffSuggestions" class="search-suggestions"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="ride-types">
+                <div class="ride-card active" data-ride="economy" data-base="5.5" data-perkm="0.85"><i class="fas fa-car"></i><div style="font-size:11px;">Economy</div></div>
+                <div class="ride-card" data-ride="comfort" data-base="8.0" data-perkm="1.2"><i class="fas fa-car-side"></i><div style="font-size:11px;">Comfort</div></div>
+                <div class="ride-card" data-ride="electric" data-base="7.5" data-perkm="1.0"><i class="fas fa-charging-station"></i><div style="font-size:11px;">Electric</div></div>
+                <div class="ride-card" data-ride="premium" data-base="15.0" data-perkm="1.8"><i class="fas fa-gem"></i><div style="font-size:11px;">Premium</div></div>
+            </div>
+            <div class="action-panel">
+                <div class="price-box"><span>💰 Estimated fare</span><span id="fareAmount">$7.20</span></div>
+                <button class="btn-primary" id="requestBtn" onclick="requestRide()">Request EasyGo</button>
+                <div id="rideStatusPanel" class="ride-status-card" style="display:none;">
+                    <div id="statusText"><i class="fas fa-spinner fa-pulse"></i> Finding driver...</div>
+                    <div id="driverInfoArea" style="display:none;">
+                        <div class="driver-info">
+                            <i class="fas fa-user-circle" style="font-size:2rem;"></i>
+                            <div><strong id="driverName"></strong><br><span id="driverCar"></span></div>
+                        </div>
+                        <div class="flex-btns">
+                            <button class="btn-danger" onclick="cancelRide()">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="history-section"><strong><i class="fas fa-history"></i> My Rides</strong><div id="rideHistoryList"><p style="color:#94a3b8; text-align:center;">No rides yet</p></div></div>
+        </div>
+
+        <!-- DRIVER VIEW -->
+        <div id="driverView" style="display:none;">
+            <div class="map-container">
+                <div id="driverMap" style="height: 250px; width: 100%;"></div>
+                <div class="map-buttons">
+                    <button class="map-btn" onclick="centerDriverMap()"><i class="fas fa-location-dot"></i> My Location</button>
+                </div>
+            </div>
+            <div class="online-toggle">
+                <h4><i class="fas fa-power-off"></i> Driver Status</h4>
+                <div id="toggleSwitch" class="toggle-switch" onclick="toggleOnline()"></div>
+                <p id="onlineStatusText">⚫ Offline - Tap to go online</p>
+            </div>
+            <div id="earningsCard" class="earnings-card">
+                <h4>💰 Today's Earnings</h4>
+                <h2 id="todayEarnings">$0</h2>
+                <p id="tripsCompleted">0 trips completed</p>
+            </div>
+            <div id="incomingRequests">
+                <h4 style="margin:12px;">📢 Ride Requests</h4>
+                <div id="requestsList"><p style="text-align:center; color:#94a3b8;">Go online to see ride requests</p></div>
+            </div>
+            <div class="history-section"><strong><i class="fas fa-history"></i> Driver History</strong><div id="driverHistoryList"><p style="color:#94a3b8;">No trips yet</p></div></div>
+        </div>
+    </div>
+    <div id="toastMsg" class="toast"></div>
+</div>
+
+<script>
+    // ---------- REAL APP WITH SEARCH ----------
+    let currentUser = null;
+    let currentMode = "rider";
+    let activeRide = null;
+    let activeDriverJob = null;
+    let isOnline = false;
+    let riderMap, driverMap, riderMarker, driverMarker;
+    let riderLat = 40.7128, riderLng = -74.0060;
+    let driverLat = 40.7128, driverLng = -74.0060;
+    
+    // Geocoding function (address -> coordinates)
+    async function geocodeAddress(address) {
+        if (!address.trim()) return null;
+        try {
+            let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`);
+            let data = await response.json();
+            if (data && data.length > 0) {
+                return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon), displayName: data[0].display_name };
+            }
+        } catch(e) { console.log(e); }
+        return null;
+    }
+    
+    // Reverse geocode (coordinates -> address)
+    async function reverseGeocode(lat, lng) {
+        try {
+            let response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+            let data = await response.json();
+            return data.display_name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        } catch(e) { return `${lat.toFixed(4)}, ${lng.toFixed(4)}`; }
+    }
+    
+    // Address search suggestions
+    async function searchAddresses(query, suggestionsDivId, inputId) {
+        if (query.length < 2) {
+            document.getElementById(suggestionsDivId).style.display = 'none';
+            return;
+        }
+        try {
+            let response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5`);
+            let data = await response.json();
+            let suggestionsDiv = document.getElementById(suggestionsDivId);
+            if (data.length > 0) {
+                suggestionsDiv.innerHTML = data.map(item => `<div class="suggestion-item" onclick="selectAddress('${item.display_name.replace(/'/g, "\\'")}', ${item.lat}, ${item.lon}, '${inputId}', '${suggestionsDivId}')">${item.display_name.substring(0, 60)}</div>`).join('');
+                suggestionsDiv.style.display = 'block';
+            } else {
+                suggestionsDiv.style.display = 'none';
+            }
+        } catch(e) { console.log(e); }
+    }
+    
+    function selectAddress(address, lat, lng, inputId, suggestionsDivId) {
+        document.getElementById(inputId).value = address;
+        document.getElementById(suggestionsDivId).style.display = 'none';
+        if (inputId === 'pickupInput') {
+            riderLat = lat;
+            riderLng = lng;
+            riderMap.setView([lat, lng], 15);
+            riderMarker.setLatLng([lat, lng]);
+            updateFare();
+        }
+    }
+    
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        toast.style.backgroundColor = isError ? '#ef4444' : '#00b67a';
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => toast.style.display = 'none', 2500);
+    }
+    
+    // Initialize Maps
+    function initRiderMap() {
+        if (riderMap) riderMap.remove();
+        riderMap = L.map('riderMap').setView([riderLat, riderLng], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>' }).addTo(riderMap);
+        riderMarker = L.marker([riderLat, riderLng], { draggable: true }).addTo(riderMap);
+        riderMarker.on('dragend', async function(e) {
+            let pos = e.target.getLatLng();
+            riderLat = pos.lat;
+            riderLng = pos.lng;
+            let address = await reverseGeocode(riderLat, riderLng);
+            document.getElementById('pickupInput').value = address;
+            updateFare();
+        });
+        riderMap.on('click', async function(e) {
+            riderLat = e.latlng.lat;
+            riderLng = e.latlng.lng;
+            riderMarker.setLatLng([riderLat, riderLng]);
+            let address = await reverseGeocode(riderLat, riderLng);
+            document.getElementById('pickupInput').value = address;
+            updateFare();
+        });
+    }
+    
+    function initDriverMap() {
+        if (driverMap) driverMap.remove();
+        driverMap = L.map('driverMap').setView([driverLat, driverLng], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { attribution: '&copy; OSM' }).addTo(driverMap);
+        driverMarker = L.marker([driverLat, driverLng], { draggable: true }).addTo(driverMap);
+        driverMarker.on('dragend', async function(e) {
+            let pos = e.target.getLatLng();
+            driverLat = pos.lat;
+            driverLng = pos.lng;
+        });
+    }
+    
+    async function centerRiderMap() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(async pos => {
+                riderLat = pos.coords.latitude;
+                riderLng = pos.coords.longitude;
+                riderMap.setView([riderLat, riderLng], 15);
+                riderMarker.setLatLng([riderLat, riderLng]);
+                let address = await reverseGeocode(riderLat, riderLng);
+                document.getElementById('pickupInput').value = address;
+                updateFare();
+            }, () => showToast("Enable location", true));
+        }
+    }
+    
+    function centerDriverMap() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(pos => {
+                driverLat = pos.coords.latitude;
+                driverLng = pos.coords.longitude;
+                driverMap.setView([driverLat, driverLng], 15);
+                driverMarker.setLatLng([driverLat, driverLng]);
+            }, () => showToast("Enable location", true));
+        }
+    }
+    
+    // User functions
+    function getUsers() {
+        let users = localStorage.getItem('easygo_real_users');
+        if (!users) {
+            users = [
+                { id: 'r1', name: 'John Rider', email: 'rider@easygo.com', password: '123', role: 'rider', rides: [] },
+                { id: 'd1', name: 'Mike Driver', email: 'driver@easygo.com', password: '123', role: 'driver', earnings: 0, trips: [] }
+            ];
+            localStorage.setItem('easygo_real_users', JSON.stringify(users));
+        }
+        return JSON.parse(users);
+    }
+    function saveUsers(users) { localStorage.setItem('easygo_real_users', JSON.stringify(users)); }
+    
+    function handleRegister() {
+        let name = document.getElementById('regName').value.trim();
+        let email = document.getElementById('regEmail').value.trim();
+        let pass = document.getElementById('regPassword').value.trim();
+        let role = document.getElementById('regRole').value;
+        if (!name || !email || !pass) { showToast('Fill all fields', true); return; }
+        let users = getUsers();
+        if (users.find(u => u.email === email)) { showToast('Email exists', true); return; }
+        let newUser = { id: Date.now().toString(), name, email, password: pass, role, rides: [], earnings: 0, trips: [] };
+        users.push(newUser);
+        saveUsers(users);
+        showToast('Account created! Please login.');
+        showLogin();
+    }
+    
+    function handleLogin() {
+        let email = document.getElementById('loginEmail').value.trim();
+        let pass = document.getElementById('loginPassword').value.trim();
+        let role = document.getElementById('loginRole').value;
+        let users = getUsers();
+        let user = users.find(u => u.email === email && u.password === pass && u.role === role);
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('easygo_session', JSON.stringify({ id: user.id, role: user.role }));
+            showMainApp();
+        } else { showToast('Invalid credentials', true); }
+    }
+    
+    function handleLogout() {
+        localStorage.removeItem('easygo_session');
+        currentUser = null;
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('authScreen').style.display = 'flex';
+        showLogin();
+    }
+    
+    function showMainApp() {
+        document.getElementById('authScreen').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        let session = JSON.parse(localStorage.getItem('easygo_session'));
+        let users = getUsers();
+        currentUser = users.find(u => u.id === session.id);
+        document.getElementById('roleBadge').innerText = currentUser.role === 'driver' ? '🚘 Driver' : '🚗 Rider';
+        
+        if (currentUser.role === 'driver') {
+            document.getElementById('modeSwitcher').style.display = 'flex';
+            initDriverMap();
+            switchMode('driver');
+        } else {
+            document.getElementById('modeSwitcher').style.display = 'none';
+            initRiderMap();
+            switchMode('rider');
+        }
+        renderRideHistory();
+        if (currentUser.role === 'driver') renderDriverDashboard();
+        
+        // Add search listeners
+        let pickupInput = document.getElementById('pickupInput');
+        let dropoffInput = document.getElementById('dropoffInput');
+        let pickupTimeout, dropoffTimeout;
+        pickupInput.addEventListener('input', function() {
+            clearTimeout(pickupTimeout);
+            pickupTimeout = setTimeout(() => searchAddresses(this.value, 'pickupSuggestions', 'pickupInput'), 300);
+        });
+        dropoffInput.addEventListener('input', function() {
+            clearTimeout(dropoffTimeout);
+            dropoffTimeout = setTimeout(() => searchAddresses(this.value, 'dropoffSuggestions', 'dropoffInput'), 300);
+        });
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-wrapper')) {
+                document.getElementById('pickupSuggestions').style.display = 'none';
+                document.getElementById('dropoffSuggestions').style.display = 'none';
+            }
+        });
+    }
+    
+    function switchMode(mode) {
+        currentMode = mode;
+        if (mode === 'rider') {
+            document.getElementById('riderView').style.display = 'block';
+            document.getElementById('driverView').style.display = 'none';
+            if (riderMap) setTimeout(() => riderMap.invalidateSize(), 100);
+            document.querySelectorAll('.mode-btn')[0]?.classList.add('active');
+            document.querySelectorAll('.mode-btn')[1]?.classList.remove('active');
+        } else {
+            document.getElementById('riderView').style.display = 'none';
+            document.getElementById('driverView').style.display = 'block';
+            if (driverMap) setTimeout(() => driverMap.invalidateSize(), 100);
+            document.querySelectorAll('.mode-btn')[1]?.classList.add('active');
+            document.querySelectorAll('.mode-btn')[0]?.classList.remove('active');
+            renderDriverDashboard();
+        }
+    }
+    
+    // RIDER FUNCTIONS
+    let selectedRide = { type: 'economy', base: 5.5, perkm: 0.85 };
+    document.querySelectorAll('.ride-card').forEach(card => {
+        card.addEventListener('click', function() {
+            if (activeRide && activeRide.status !== 'completed') { showToast('Complete current ride first', true); return; }
+            document.querySelectorAll('.ride-card').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            selectedRide = { type: this.getAttribute('data-ride'), base: parseFloat(this.getAttribute('data-base')), perkm: parseFloat(this.getAttribute('data-perkm')) };
+            updateFare();
+        });
+    });
+    function updateFare() { let dist = 4.2; let fare = (selectedRide.base + selectedRide.perkm * dist).toFixed(2); document.getElementById('fareAmount').innerText = `$${fare}`; return parseFloat(fare); }
+    
+    function requestRide() {
+        if (!currentUser || (activeRide && activeRide.status !== 'completed')) { showToast('Complete existing ride first', true); return; }
+        let fare = updateFare();
+        let pickup = document.getElementById('pickupInput').value || "Current Location";
+        let dropoff = document.getElementById('dropoffInput').value || "Destination";
+        
+        let rideRequest = {
+            id: 'R' + Date.now(),
+            riderId: currentUser.id,
+            riderName: currentUser.name,
+            pickup: pickup,
+            dropoff: dropoff,
+            fare: fare,
+            rideType: selectedRide.type,
+            pickupLat: riderLat,
+            pickupLng: riderLng,
+            status: 'pending',
+            driverId: null,
+            driverName: null,
+            createdAt: new Date().toISOString()
+        };
+        
+        let allRequests = JSON.parse(localStorage.getItem('easygo_pending_rides') || '[]');
+        allRequests.push(rideRequest);
+        localStorage.setItem('easygo_pending_rides', JSON.stringify(allRequests));
+        
+        activeRide = rideRequest;
+        document.getElementById('rideStatusPanel').style.display = 'block';
+        document.getElementById('statusText').innerHTML = '🕐 Waiting for a driver to accept...';
+        document.getElementById('driverInfoArea').style.display = 'none';
+        document.getElementById('requestBtn').disabled = true;
+        showToast('Ride requested! Waiting for driver...');
+        
+        let checkInterval = setInterval(() => {
+            let updated = JSON.parse(localStorage.getItem('easygo_pending_rides') || '[]').find(r => r.id === rideRequest.id);
+            if (updated && updated.status === 'accepted') {
+                clearInterval(checkInterval);
+                activeRide = updated;
+                document.getElementById('statusText').innerHTML = '✅ Driver accepted! They are coming to your location.';
+                document.getElementById('driverName').innerText = updated.driverName;
+                document.getElementById('driverCar').innerText = `⭐ 4.9 • On the way`;
+                document.getElementById('driverInfoArea').style.display = 'block';
+                showToast(`${updated.driverName} accepted your ride!`);
+            } else if (updated && updated.status === 'completed') {
+                clearInterval(checkInterval);
+                completeRideFromPoll();
+            }
+        }, 2000);
+        window.currentCheckInterval = checkInterval;
+    }
+    
+    function completeRideFromPoll() {
+        if (activeRide) {
+            let users = getUsers();
+            let rider = users.find(u => u.id === currentUser.id);
+            if (rider) {
+                if (!rider.rides) rider.rides = [];
+                rider.rides.unshift({ id: activeRide.id, pickup: activeRide.pickup, dropoff: activeRide.dropoff, fare: activeRide.fare, rideType: activeRide.rideType, driver: activeRide.driverName, date: new Date().toLocaleString() });
+                saveUsers(users);
+                currentUser = rider;
+            }
+            showToast(`Trip completed! $${activeRide.fare} charged.`);
+            activeRide = null;
+            document.getElementById('rideStatusPanel').style.display = 'none';
+            document.getElementById('requestBtn').disabled = false;
+            renderRideHistory();
+        }
+    }
+    
+    function cancelRide() {
+        if (activeRide && activeRide.status === 'pending') {
+            let allRequests = JSON.parse(localStorage.getItem('easygo_pending_rides') || '[]');
+            allRequests = allRequests.filter(r => r.id !== activeRide.id);
+            localStorage.setItem('easygo_pending_rides', JSON.stringify(allRequests));
+            if (window.currentCheckInterval) clearInterval(window.currentCheckInterval);
+            activeRide = null;
+            document.getElementById('rideStatusPanel').style.display = 'none';
+            document.getElementById('requestBtn').disabled = false;
+            showToast('Ride cancelled');
+        } else { showToast('Cannot cancel now', true); }
+    }
+    
+    function renderRideHistory() {
+        let historyDiv = document.getElementById('rideHistoryList');
+        if (!currentUser?.rides || currentUser.rides.length === 0) { historyDiv.innerHTML = '<p style="color:#94a3b8;">No rides yet</p>'; return; }
+        historyDiv.innerHTML = currentUser.rides.slice(0,5).map(r => `<div class="history-item"><div><strong>${r.rideType.toUpperCase()}</strong><br><small>${r.pickup.substring(0,25)} → ${r.dropoff.substring(0,25)}</small></div><div><strong>$${r.fare}</strong><br><small>${r.date}</small></div></div>`).join('');
+    }
+    
+    // DRIVER FUNCTIONS
+    function toggleOnline() {
+        isOnline = !isOnline;
+        let toggle = document.getElementById('toggleSwitch');
+        let statusText = document.getElementById('onlineStatusText');
+        if (isOnline) {
+            toggle.classList.add('on');
+            statusText.innerHTML = '🟢 Online - Waiting for ride requests';
+            showToast('You are now ONLINE');
+            checkForRideRequests();
+        } else {
+            toggle.classList.remove('on');
+            statusText.innerHTML = '⚫ Offline - Tap to go online';
+            document.getElementById('requestsList').innerHTML = '<p style="text-align:center; color:#94a3b8;">Go online to see ride requests</p>';
+        }
+    }
+    
+    function checkForRideRequests() {
+        if (!isOnline) return;
+        let allRequests = JSON.parse(localStorage.getItem('easygo_pending_rides') || '[]');
+        let pending = allRequests.filter(r => r.status === 'pending');
+        if (pending.length > 0) {
+            document.getElementById('requestsList').innerHTML = pending.map(req => `
+                <div class="ride-request-card" data-id="${req.id}">
+                    <strong>🆕 New Ride Request!</strong><br>
+                    📍 Pickup: ${req.pickup.substring(0,35)}<br>
+                    📍 Dropoff: ${req.dropoff.substring(0,35)}<br>
+                    🚗 Type: ${req.rideType}<br>
+                    💰 Est. $${req.fare}<br>
+                    <button class="accept-btn" onclick="acceptRide('${req.id}')">Accept Ride 🚗</button>
+                </div>
+            `).join('');
+        } else {
+            document.getElementById('requestsList').innerHTML = '<p style="text-align:center; color:#94a3b8;">No ride requests yet</p>';
+        }
+        setTimeout(() => checkForRideRequests(), 3000);
+    }
+    
+    function acceptRide(rideId) {
+        let allRequests = JSON.parse(localStorage.getItem('easygo_pending_rides') || '[]');
+        let rideIndex = allRequests.findIndex(r => r.id === rideId);
+        if (rideIndex !== -1 && allRequests[rideIndex].status === 'pending') {
+            allRequests[rideIndex].status = 'accepted';
+            allRequests[rideIndex].driverId = currentUser.id;
+            allRequests[rideIndex].driverName = currentUser.name;
+            localStorage.setItem('easygo_pending_rides', JSON.stringify(allRequests));
+            activeDriverJob = allRequests[rideIndex];
+            showToast(`You accepted ride to ${activeDriverJob.dropoff.substring(0,30)}!`);
+            document.getElementById('requestsList').innerHTML = `<div class="ride-request-card"><strong>🚗 Ride in progress</strong><br>Pickup: ${activeDriverJob.pickup.substring(0,35)}<br>Dropoff: ${activeDriverJob.dropoff.substring(0,35)}<br>💰 Fare: $${activeDriverJob.fare}<br><button class="btn-primary" onclick="completeDriverRide()">Complete Ride & Earn $${activeDriverJob.fare}</button></div>`;
+        }
+    }
+    
+    function completeDriverRide() {
+        if (!activeDriverJob) return;
+        let users = getUsers();
+        let driver = users.find(u => u.id === currentUser.id);
+        if (driver) {
+            driver.earnings = (driver.earnings || 0) + activeDriverJob.fare;
+            if (!driver.trips) driver.trips = [];
+            driver.trips.unshift({ id: activeDriverJob.id, fare: activeDriverJob.fare, rider: activeDriverJob.riderName, date: new Date().toLocaleString() });
+            saveUsers(users);
+            currentUser = driver;
+        }
+        let allRequests = JSON.parse(localStorage.getItem('easygo_pending_rides') || '[]');
+        let rideIdx = allRequests.findIndex(r => r.id === activeDriverJob.id);
+        if (rideIdx !== -1) {
+            allRequests[rideIdx].status = 'completed';
+            localStorage.setItem('easygo_pending_rides', JSON.stringify(allRequests));
+        }
+        showToast(`Ride completed! +$${activeDriverJob.fare} earned.`);
+        activeDriverJob = null;
+        renderDriverDashboard();
+        if (isOnline) checkForRideRequests();
+    }
+    
+    function renderDriverDashboard() {
+        document.getElementById('todayEarnings').innerText = `$${currentUser.earnings || 0}`;
+        document.getElementById('tripsCompleted').innerText = `${currentUser.trips?.length || 0} trips`;
+        let historyDiv = document.getElementById('driverHistoryList');
+        if (!currentUser.trips || currentUser.trips.length === 0) historyDiv.innerHTML = '<p style="color:#94a3b8;">No trips yet</p>';
+        else historyDiv.innerHTML = currentUser.trips.slice(0,5).map(t => `<div class="history-item"><div><strong>Trip</strong><br><small>Rider: ${t.rider}</small></div><div><strong>$${t.fare}</strong><br><small>${t.date}</small></div></div>`).join('');
+    }
+    
+    function showRegister() { document.getElementById('loginPanel').style.display = 'none'; document.getElementById('registerPanel').style.display = 'block'; }
+    function showLogin() { document.getElementById('loginPanel').style.display = 'block'; document.getElementById('registerPanel').style.display = 'none'; }
+    
+    function init() {
+        let session = localStorage.getItem('easygo_session');
+        if (session) {
+            let s = JSON.parse(session);
+            let users = getUsers();
+            let u = users.find(u => u.id === s.id);
+            if (u) { currentUser = u; showMainApp(); }
+            else { document.getElementById('authScreen').style.display = 'flex'; showLogin(); }
+        } else { document.getElementById('authScreen').style.display = 'flex'; showLogin(); }
+    }
+    window.onload = init;
+</script>
+</body>
+</html>
