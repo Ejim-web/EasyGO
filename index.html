@@ -1,1 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>EasyGo | Professional Ride Hailing Platform</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+
+        /* Main App Container */
+        .app-wrapper {
+            max-width: 500px;
+            margin: 0 auto;
+            background: #f8f9fc;
+            min-height: 100vh;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* Auth Pages */
+        .auth-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .auth-card {
+            background: white;
+            border-radius: 32px;
+            padding: 40px 28px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .auth-logo {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .auth-logo i {
+            font-size: 3rem;
+            color: #00b67a;
+            background: #e6f7ef;
+            padding: 16px;
+            border-radius: 60px;
+        }
+
+        .auth-logo h2 {
+            margin-top: 12px;
+            color: #1e2a3a;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #4a5568;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+
+        .input-group input:focus {
+            outline: none;
+            border-color: #00b67a;
+        }
+
+        .btn-primary {
+            background: #00b67a;
+            color: white;
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 40px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-primary:hover {
+            background: #008c5a;
+            transform: translateY(-2px);
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 24px;
+            color: #718096;
+        }
+
+        .auth-switch a {
+            color: #00b67a;
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Main App (Logged In) */
+        .main-app {
+            display: none;
+        }
+
+        .app-header {
+            background: white;
+            padding: 16px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: #1e2a3a;
+        }
+
+        .logo-area i {
+            color: #00b67a;
+        }
+
+        .user-menu {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .logout-btn {
+            background: #fee2e2;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 40px;
+            color: #dc2626;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        /* Map Simulation */
+        .map-area {
+            background: linear-gradient(135deg, #1e4668, #0f2b3d);
+            height: 220px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .map-overlay {
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            padding: 12px 24px;
+            border-radius: 60px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        /* Ride Types */
+        .ride-types {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            padding: 20px;
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .ride-card {
+            text-align: center;
+            padding: 12px 8px;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .ride-card.active {
+            background: #e6f7ef;
+            border-color: #00b67a;
+        }
+
+        .ride-card i {
+            font-size: 1.6rem;
+            color: #00b67a;
+        }
+
+        .ride-card .ride-name {
+            font-weight: 700;
+            font-size: 0.8rem;
+            margin-top: 6px;
+        }
+
+        /* Location Panel */
+        .location-panel {
+            background: white;
+            padding: 20px;
+            border-bottom: 8px solid #f0f2f5;
+        }
+
+        .location-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .location-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 20px;
+            background: #00b67a;
+        }
+
+        .location-dot.red {
+            background: #ef4444;
+        }
+
+        .location-input {
+            flex: 1;
+            border: none;
+            font-size: 1rem;
+            padding: 8px 0;
+            outline: none;
+            background: transparent;
+        }
+
+        /* Price & Action */
+        .action-panel {
+            background: white;
+            margin: 20px;
+            border-radius: 28px;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        }
+
+        .price-box {
+            background: #f7f9fc;
+            padding: 16px;
+            border-radius: 20px;
+            display: flex;
+            justify-content: space-between;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        /* Ride Status */
+        .ride-status-card {
+            background: #fff7ed;
+            border-radius: 20px;
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .driver-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 12px;
+            padding: 12px;
+            background: white;
+            border-radius: 16px;
+        }
+
+        /* History Section */
+        .history-section {
+            margin: 20px;
+            background: white;
+            border-radius: 28px;
+            padding: 20px;
+        }
+
+        .history-title {
+            font-weight: 700;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .history-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .toast-message {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: #1e2a3a;
+            color: white;
+            padding: 12px;
+            border-radius: 60px;
+            text-align: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+<div class="app-wrapper">
+    <!-- Login/Register Container -->
+    <div id="authContainer" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-logo">
+                <i class="fas fa-bolt"></i>
+                <h2>EasyGo</h2>
+                <p style="color:#718096; margin-top: 8px;">Your premium ride experience</p>
+            </div>
+            <div id="loginForm">
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" placeholder="you@example.com">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="loginPassword" placeholder="••••••">
+                </div>
+                <button class="btn-primary" onclick="handleLogin()">Sign In</button>
+                <div class="auth-switch">
+                    Don't have an account? <a onclick="showRegister()">Create account</a>
+                </div>
+            </div>
+            <div id="registerForm" style="display:none;">
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" id="regName" placeholder="John Doe">
+                </div>
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" id="regEmail" placeholder="you@example.com">
+                </div>
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" id="regPassword" placeholder="Create password">
+                </div>
+                <button class="btn-primary" onclick="handleRegister()">Create Account</button>
+                <div class="auth-switch">
+                    Already have an account? <a onclick="showLogin()">Sign In</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App (Logged In) -->
+    <div id="mainApp" class="main-app">
+        <div class="app-header">
+            <div class="logo-area">
+                <i class="fas fa-bolt"></i>
+                <span>EasyGo</span>
+            </div>
+            <div class="user-menu">
+                <span class="user-name" id="displayUserName">User</span>
+                <button class="logout-btn" onclick="handleLogout()"><i class="fas fa-sign-out-alt"></i> Exit</button>
+            </div>
+        </div>
+
+        <div class="map-area">
+            <div class="map-overlay">
+                <i class="fas fa-map-marker-alt"></i>
+                <span>Live GPS • 24/7 Ride Ready</span>
+                <i class="fas fa-car" style="animation: moveCar 1.5s infinite alternate;"></i>
+            </div>
+        </div>
+
+        <div class="ride-types">
+            <div class="ride-card active" data-ride="economy" data-base="5.5" data-perkm="0.9">
+                <i class="fas fa-car"></i>
+                <div class="ride-name">Economy</div>
+            </div>
+            <div class="ride-card" data-ride="comfort" data-base="8.0" data-perkm="1.2">
+                <i class="fas fa-car-side"></i>
+                <div class="ride-name">Comfort</div>
+            </div>
+            <div class="ride-card" data-ride="electric" data-base="7.5" data-perkm="1.0">
+                <i class="fas fa-charging-station"></i>
+                <div class="ride-name">Electric</div>
+            </div>
+            <div class="ride-card" data-ride="premium" data-base="15.0" data-perkm="1.8">
+                <i class="fas fa-gem"></i>
+                <div class="ride-name">Premium</div>
+            </div>
+        </div>
+
+        <div class="location-panel">
+            <div class="location-row">
+                <div class="location-dot"></div>
+                <input type="text" id="pickupLocation" class="location-input" placeholder="Your pickup location" value="Downtown Square">
+            </div>
+            <div class="location-row">
+                <div class="location-dot red"></div>
+                <input type="text" id="dropLocation" class="location-input" placeholder="Destination" value="Airport Terminal">
+            </div>
+        </div>
+
+        <div class="action-panel">
+            <div class="price-box">
+                <span>💰 Estimated fare</span>
+                <span id="estimatedFare">$7.20</span>
+            </div>
+            <button class="btn-primary" id="requestBtn" onclick="requestRide()">Request EasyGo</button>
+
+            <div id="rideStatusPanel" class="ride-status-card">
+                <div id="statusMessage"><i class="fas fa-spinner fa-pulse"></i> Finding driver...</div>
+                <div id="driverInfoArea" style="display:none;">
+                    <div class="driver-info">
+                        <i class="fas fa-user-circle" style="font-size: 2.5rem; color:#00b67a;"></i>
+                        <div>
+                            <strong id="driverName">Michael</strong><br>
+                            <span id="driverDetails">⭐ 4.92 • License 7XG92</span>
+                        </div>
+                    </div>
+                    <button class="btn-primary" id="completeBtn" style="margin-top: 12px; background:#dc2626;" onclick="completeRide()">Complete & Pay</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="history-section">
+            <div class="history-title"><i class="fas fa-history"></i> Recent Rides</div>
+            <div id="rideHistoryList">
+                <p style="color:#94a3b8; text-align:center;">No rides yet. Book your first EasyGo!</p>
+            </div>
+        </div>
+    </div>
+    <div id="toastMsg" class="toast-message"></div>
+</div>
+
+<style>
+    @keyframes moveCar {
+        0% { transform: translateX(-5px); }
+        100% { transform: translateX(5px); }
+    }
+    .ride-card:hover { transform: scale(1.02); background: #f0fff4; }
+    .fa-spinner { animation: spin 1s linear infinite; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+</style>
+
+<script>
+    // ---------- PROFESSIONAL AUTH SYSTEM (LocalStorage) ----------
+    let currentUser = null;
+    let activeRide = null;
+    let rideTimer = null;
+
+    // Load users from localStorage
+    function getUsers() {
+        let users = localStorage.getItem('easygo_users');
+        if (!users) {
+            const defaultUser = {
+                id: 'user1',
+                name: 'John Rider',
+                email: 'demo@easygo.com',
+                password: 'demo123',
+                rides: []
+            };
+            users = [defaultUser];
+            localStorage.setItem('easygo_users', JSON.stringify(users));
+        }
+        return JSON.parse(users);
+    }
+
+    function saveUsers(users) {
+        localStorage.setItem('easygo_users', JSON.stringify(users));
+    }
+
+    function showToast(msg, isError = false) {
+        const toast = document.getElementById('toastMsg');
+        toast.style.backgroundColor = isError ? '#dc2626' : '#00b67a';
+        toast.innerText = msg;
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 2500);
+    }
+
+    function handleRegister() {
+        const name = document.getElementById('regName').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const pass = document.getElementById('regPassword').value.trim();
+        if (!name || !email || !pass) {
+            showToast('Please fill all fields', true);
+            return;
+        }
+        let users = getUsers();
+        if (users.find(u => u.email === email)) {
+            showToast('Email already registered', true);
+            return;
+        }
+        const newUser = {
+            id: Date.now().toString(),
+            name: name,
+            email: email,
+            password: pass,
+            rides: []
+        };
+        users.push(newUser);
+        saveUsers(users);
+        showToast('Account created! Please login.');
+        showLogin();
+    }
+
+    function handleLogin() {
+        const email = document.getElementById('loginEmail').value.trim();
+        const pass = document.getElementById('loginPassword').value.trim();
+        if (!email || !pass) {
+            showToast('Enter email and password', true);
+            return;
+        }
+        let users = getUsers();
+        const user = users.find(u => u.email === email && u.password === pass);
+        if (user) {
+            currentUser = user;
+            localStorage.setItem('easygo_current_session', JSON.stringify({ userId: user.id, name: user.name, email: user.email }));
+            showMainApp();
+            showToast(`Welcome back, ${user.name}! 🚗`);
+        } else {
+            showToast('Invalid credentials', true);
+        }
+    }
+
+    function handleLogout() {
+        localStorage.removeItem('easygo_current_session');
+        currentUser = null;
+        if (rideTimer) clearTimeout(rideTimer);
+        document.getElementById('mainApp').style.display = 'none';
+        document.getElementById('authContainer').style.display = 'flex';
+        showLogin();
+        showToast('Logged out successfully');
+    }
+
+    function showMainApp() {
+        document.getElementById('authContainer').style.display = 'none';
+        document.getElementById('mainApp').style.display = 'block';
+        const session = JSON.parse(localStorage.getItem('easygo_current_session'));
+        if (session) {
+            document.getElementById('displayUserName').innerText = session.name.split(' ')[0];
+            // Reload full user object
+            const users = getUsers();
+            currentUser = users.find(u => u.id === session.userId);
+            if (currentUser) renderRideHistory();
+        }
+    }
+
+    function showRegister() {
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('registerForm').style.display = 'block';
+    }
+
+    function showLogin() {
+        document.getElementById('loginForm').style.display = 'block';
+        document.getElementById('registerForm').style.display = 'none';
+    }
+
+    // ---------- RIDE LOGIC ----------
+    let selectedRide = { type: 'economy', base: 5.5, perkm: 0.9 };
+    let currentEstimatedFare = 7.2;
+
+    function updateFare() {
+        let distance = 4.0 + (Math.random() * 3);
+        distance = parseFloat(distance.toFixed(1));
+        let fare = (selectedRide.base + (selectedRide.perkm * distance)).toFixed(2);
+        currentEstimatedFare = parseFloat(fare);
+        document.getElementById('estimatedFare').innerText = `$${currentEstimatedFare}`;
+        return currentEstimatedFare;
+    }
+
+    // Ride type selection
+    document.querySelectorAll('.ride-card').forEach(card => {
+        card.addEventListener('click', function() {
+            if (activeRide && activeRide.status !== 'completed') {
+                showToast('Complete current ride first', true);
+                return;
+            }
+            document.querySelectorAll('.ride-card').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            const rideType = this.getAttribute('data-ride');
+            const base = parseFloat(this.getAttribute('data-base'));
+            const perkm = parseFloat(this.getAttribute('data-perkm'));
+            selectedRide = { type: rideType, base, perkm };
+            updateFare();
+        });
+    });
+
+    document.getElementById('pickupLocation').addEventListener('input', () => updateFare());
+    document.getElementById('dropLocation').addEventListener('input', () => updateFare());
+
+    function requestRide() {
+        if (!currentUser) return;
+        if (activeRide && activeRide.status !== 'completed') {
+            showToast('You already have an active ride!', true);
+            return;
+        }
+        const pickup = document.getElementById('pickupLocation').value.trim();
+        const drop = document.getElementById('dropLocation').value.trim();
+        if (!pickup || !drop) {
+            showToast('Enter pickup and destination', true);
+            return;
+        }
+
+        updateFare();
+        const rideId = 'RID' + Date.now();
+        const drivers = [
+            { name: 'Alex M.', plate: 'NYC-7432', rating: '4.96' },
+            { name: 'Sophia C.', plate: 'BOLT-9E3', rating: '4.89' },
+            { name: 'James W.', plate: 'EASY-001', rating: '4.99' }
+        ];
+        const randomDriver = drivers[Math.floor(Math.random() * drivers.length)];
+
+        activeRide = {
+            id: rideId,
+            pickup: pickup,
+            destination: drop,
+            fare: currentEstimatedFare,
+            rideType: selectedRide.type,
+            driver: randomDriver,
+            status: 'searching', // searching, active, completed
+            createdAt: new Date().toISOString()
+        };
+
+        // UI update for ride status
+        const statusPanel = document.getElementById('rideStatusPanel');
+        const statusMsg = document.getElementById('statusMessage');
+        const driverArea = document.getElementById('driverInfoArea');
+        statusPanel.style.display = 'block';
+        statusMsg.innerHTML = '<i class="fas fa-spinner fa-pulse"></i> Finding nearest driver...';
+        driverArea.style.display = 'none';
+        document.getElementById('requestBtn').disabled = true;
+
+        // Simulate driver assignment after 2 seconds
+        setTimeout(() => {
+            if (activeRide && activeRide.status === 'searching') {
+                activeRide.status = 'active';
+                statusMsg.innerHTML = '✅ Driver assigned! Arriving at your location.';
+                document.getElementById('driverName').innerHTML = `${randomDriver.name} <span style="font-weight:normal;">• ${randomDriver.plate}</span>`;
+                document.getElementById('driverDetails').innerHTML = `⭐ ${randomDriver.rating} • ETA 3 min`;
+                driverArea.style.display = 'block';
+                // Auto complete simulation after 12 sec (professional demo)
+                if (rideTimer) clearTimeout(rideTimer);
+                rideTimer = setTimeout(() => {
+                    if (activeRide && activeRide.status === 'active') {
+                        completeRide();
+                    }
+                }, 12000);
+                showToast(`${randomDriver.name} is on the way!`);
+            }
+        }, 2000);
+    }
+
+    function completeRide() {
+        if (!activeRide || activeRide.status === 'completed') {
+            showToast('No active ride to complete', true);
+            return;
+        }
+        if (rideTimer) clearTimeout(rideTimer);
+        activeRide.status = 'completed';
+        activeRide.completedAt = new Date().toISOString();
+
+        // Save ride to user history
+        const users = getUsers();
+        const userIndex = users.findIndex(u => u.id === currentUser.id);
+        if (userIndex !== -1) {
+            if (!users[userIndex].rides) users[userIndex].rides = [];
+            users[userIndex].rides.unshift({
+                id: activeRide.id,
+                pickup: activeRide.pickup,
+                destination: activeRide.destination,
+                fare: activeRide.fare,
+                rideType: activeRide.rideType,
+                driver: activeRide.driver.name,
+                date: new Date().toLocaleString()
+            });
+            saveUsers(users);
+            currentUser = users[userIndex];
+            renderRideHistory();
+        }
+
+        document.getElementById('rideStatusPanel').style.display = 'none';
+        document.getElementById('requestBtn').disabled = false;
+        showToast(`Trip completed! $${activeRide.fare} charged. Thank you!`);
+        activeRide = null;
+    }
+
+    function renderRideHistory() {
+        const historyDiv = document.getElementById('rideHistoryList');
+        if (!currentUser || !currentUser.rides || currentUser.rides.length === 0) {
+            historyDiv.innerHTML = '<p style="color:#94a3b8; text-align:center;">No rides yet. Book your first EasyGo!</p>';
+            return;
+        }
+        let html = '';
+        currentUser.rides.slice(0, 5).forEach(ride => {
+            html += `
+                <div class="history-item">
+                    <div>
+                        <strong>${ride.rideType.toUpperCase()}</strong><br>
+                        <small>${ride.pickup} → ${ride.destination}</small>
+                    </div>
+                    <div style="text-align:right;">
+                        <strong>$${ride.fare}</strong><br>
+                        <small>${ride.date}</small>
+                    </div>
+                </div>
+            `;
+        });
+        historyDiv.innerHTML = html;
+    }
+
+    // Check session on page load
+    function initApp() {
+        const session = localStorage.getItem('easygo_current_session');
+        if (session) {
+            const sessionData = JSON.parse(session);
+            const users = getUsers();
+            const user = users.find(u => u.id === sessionData.userId);
+            if (user) {
+                currentUser = user;
+                showMainApp();
+            } else {
+                document.getElementById('authContainer').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+                showLogin();
+            }
+        } else {
+            document.getElementById('authContainer').style.display = 'flex';
+            document.getElementById('mainApp').style.display = 'none';
+            showLogin();
+        }
+        updateFare();
+    }
+
+    // Add live location listeners
+    window.onload = initApp;
+</script>
+</body>
+</html>
